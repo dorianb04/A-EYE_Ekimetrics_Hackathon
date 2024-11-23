@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Mic, Radio, Volume2, VolumeX } from 'lucide-react';
+import { Camera, Mic, Radio, Volume2, VolumeX  } from 'lucide-react';
 
 const MediaCaptureApp = () => {
   const [stream, setStream] = useState(null);
@@ -110,7 +110,7 @@ const MediaCaptureApp = () => {
           const base64Image = captureImage();
           
           try {
-            const response = await fetch('http://127.0.0.1:5000/process', {
+            const response = await fetch('https://aa4b-84-14-112-188.ngrok-free.app/process', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -127,8 +127,8 @@ const MediaCaptureApp = () => {
             }
             
             const data = await response.json();
-            if (data.sound) {
-              playAudio(data.sound);
+            if (data.audio_b64) {
+              playAudio(data.audio_b64);
             } else {
               throw new Error('No audio received from server');
             }
