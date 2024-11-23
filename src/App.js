@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, Mic, Radio, Volume2, VolumeX  } from 'lucide-react';
+import { Camera, Mic, Radio, Volume2, VolumeX, RefreshCw, Square } from 'lucide-react';
 
 const MediaCaptureApp = () => {
   const [stream, setStream] = useState(null);
@@ -7,36 +7,47 @@ const MediaCaptureApp = () => {
   const [mode, setMode] = useState('instruct');
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState(null);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const capturedImagesRef = useRef([]);
+  const captureIntervalRef = useRef(null);
+  const audioRef = useRef(null);
+
+  const initializeMedia = async (useFrontCamera = true) => {
+    try {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+
+      const videoStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: useFrontCamera ? 'user' : 'environment' },
+        audio: false
+      });
+      setStream(videoStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = videoStream;
+      }
+    } catch (err) {
+      setError("Failed to access camera. Please ensure permissions are granted.");
+      console.error("Error accessing camera:", err);
+    }
+  };
 
   useEffect(() => {
-    const initializeMedia = async () => {
-      try {
-        // Initialize video only for the camera feed
-        const videoStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false  // Don't initialize audio here
-        });
-        setStream(videoStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = videoStream;
-        }
-      } catch (err) {
-        setError("Failed to access camera. Please ensure permissions are granted.");
-        console.error("Error accessing camera:", err);
-      }
-    };
-
-    initializeMedia();
+    initializeMedia(isFrontCamera);
 
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [isFrontCamera]);
+
+  const switchCamera = () => {
+    setIsFrontCamera(!isFrontCamera);
+  };
 
   const captureImage = () => {
     if (videoRef.current) {
@@ -48,6 +59,31 @@ const MediaCaptureApp = () => {
       return canvas.toDataURL('image/jpeg').split(',')[1];
     }
     return null;
+  };
+
+  const startImageCapture = () => {
+    capturedImagesRef.current = [];
+    captureIntervalRef.current = setInterval(() => {
+      const image = captureImage();
+      if (image) {
+        capturedImagesRef.current.push(image);
+      }
+    }, 500);
+  };
+
+  const stopImageCapture = () => {
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+    }
+  };
+
+  const selectImages = () => {
+    const images = capturedImagesRef.current;
+    if (images.length <= 10) {
+      return images;
+    }
+    const interval = Math.floor(images.length / 10);
+    return images.filter((_, index) => index % interval === 0).slice(0, 10);
   };
 
   const base64ToAudio = (base64Audio) => {
@@ -65,6 +101,7 @@ const MediaCaptureApp = () => {
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       
+      audioRef.current = audio;
       setIsPlaying(true);
       
       audio.onended = () => {
@@ -80,10 +117,17 @@ const MediaCaptureApp = () => {
     }
   };
 
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
+
   const startRecording = async () => {
     try {
       setError(null);
-      // Get audio stream only when recording starts
       const audioStream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: false
@@ -99,7 +143,6 @@ const MediaCaptureApp = () => {
       };
 
       mediaRecorder.onstop = async () => {
-        // Stop and remove the audio stream immediately
         audioStream.getTracks().forEach(track => track.stop());
         
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
@@ -107,16 +150,16 @@ const MediaCaptureApp = () => {
         
         reader.onloadend = async () => {
           const base64Audio = reader.result.split(',')[1];
-          const base64Image = captureImage();
+          const selectedImages = selectImages();
           
           try {
-            const response = await fetch('https://aa4b-84-14-112-188.ngrok-free.app/process', {
+            const response = await fetch('https://aa4b-84-14-112-188.ngrok-free.app/instruct', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                image: base64Image,
+                images: selectedImages,
                 sound: base64Audio,
                 mode: mode
               }),
@@ -143,6 +186,7 @@ const MediaCaptureApp = () => {
 
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
+      startImageCapture();
     } catch (err) {
       setError("Failed to access microphone. Please ensure permissions are granted.");
       console.error("Error starting recording:", err);
@@ -155,6 +199,7 @@ const MediaCaptureApp = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
+    stopImageCapture();
   };
 
   return (
@@ -206,6 +251,14 @@ const MediaCaptureApp = () => {
               <span className="text-white text-sm">{stream ? 'Live' : 'No Camera'}</span>
             </div>
 
+            <button
+              onClick={switchCamera}
+              className="absolute top-4 left-4 bg-gray-800/80 hover:bg-gray-700/80 text-white p-2 rounded-full transition-colors duration-200"
+              aria-label="Switch Camera"
+            >
+              <RefreshCw className="w-5 h-5" />
+            </button>
+
             {isRecording && (
               <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-red-500/80 px-3 py-1.5 rounded-full animate-pulse">
                 <Mic className="w-4 h-4 text-white" />
@@ -242,23 +295,34 @@ const MediaCaptureApp = () => {
             </div>
           </div>
 
-          <button
-            className={`w-full py-4 rounded-lg font-medium transition-all duration-200 shadow-lg ${
-              isRecording
-                ? 'bg-red-500 hover:bg-red-600 shadow-red-500/25'
-                : mode === 'instruct'
-                ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/25'
-                : 'bg-purple-500 hover:bg-purple-600 shadow-purple-500/25'
-            } text-white touch-none select-none`}
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onMouseLeave={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            onTouchCancel={stopRecording}
-          >
-            {isRecording ? 'Release to Send Recording' : 'Hold to Record Message'}
-          </button>
+          <div className="flex gap-4 mb-6">
+            <button
+              className={`flex-1 py-4 rounded-lg font-medium transition-all duration-200 shadow-lg ${
+                isRecording
+                  ? 'bg-red-500 hover:bg-red-600 shadow-red-500/25'
+                  : mode === 'instruct'
+                  ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/25'
+                  : 'bg-purple-500 hover:bg-purple-600 shadow-purple-500/25'
+              } text-white touch-none select-none`}
+              onMouseDown={startRecording}
+              onMouseUp={stopRecording}
+              onMouseLeave={stopRecording}
+              onTouchStart={startRecording}
+              onTouchEnd={stopRecording}
+              onTouchCancel={stopRecording}
+            >
+              {isRecording ? 'Release to Send Recording' : 'Hold to Record Message'}
+            </button>
+            
+            {isPlaying && (
+              <button
+                onClick={stopAudio}
+                className="bg-red-500 hover:bg-red-600 text-white py-4 px-6 rounded-lg font-medium transition-all duration-200 shadow-lg shadow-red-500/25"
+              >
+                <Square className="w-5 h-5" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -266,3 +330,4 @@ const MediaCaptureApp = () => {
 };
 
 export default MediaCaptureApp;
+
