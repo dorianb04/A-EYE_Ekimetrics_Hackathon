@@ -1,7 +1,5 @@
 # A-Eye Frontend using REACT, TailwindCSS
 
----
-
 # How to run :
 
 ## Run server
