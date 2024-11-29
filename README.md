@@ -28,6 +28,31 @@ cd A-EYE_Ekimetrics_Hackathon
 ```
 
 ## Setup and Running
+### Adding api key
+
+The various services used in the project require API keys. These keys are stored in a `config.yaml` file in the `backend/` directory. You will need to add your own keys to this file.
+
+to do so, create a `config.yaml` file in the `backend/` directory
+
+```bash
+cp backend/config.yaml.example backend/config.yaml
+```
+
+Then, add your own keys to the `config.yaml` file
+```yaml
+backend:
+  mode: "groq"
+  groq_api:
+    api_key: your_groq_api_key
+    vllm_model_name: "llama-3.2-90b-vision-preview"
+    transcript_model_name: "whisper-large-v3-turbo"
+  scaleway_vllm_api:
+    base_url: https://api.scaleway.ai/v1
+    api_key: your_scaleway_api_key
+    vllm_model_name: "pixtral-12b-2409"
+  transcript_model:
+    version: "tiny"
+```
 
 ### Backend server
 

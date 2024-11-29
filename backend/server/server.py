@@ -12,7 +12,7 @@ from groq import Groq
 app = Flask(__name__)
 CORS(app)
 
-with open("config.yaml", "r") as file:
+with open("../config.yaml", "r") as file:
     config = yaml.safe_load(file)
 
 MODE = config["backend"]["mode"]
