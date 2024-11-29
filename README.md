@@ -33,6 +33,7 @@ cd A-EYE_Ekimetrics_Hackathon
 
 1. Install Pyhon dependencies and run the server:
 ```bash
+cd backend
 pip install -r requirements.txt
 cd server
 python server.py
@@ -43,7 +44,7 @@ The server should start running on `http://localhost:5000` by default.
 
 1. Install Node.js dependencies and run the application:
 ```bash
-cd src
+cd frontend
 npm install
 npm start
 ```
