@@ -79,6 +79,14 @@ const MediaCaptureApp = () => {
 
   const selectImages = () => {
     const images = capturedImagesRef.current;
+    
+    // Check if mode is "groq"
+    if (process.env.REACT_APP_AEYE_SERVER_MODE === "groq") {
+      // Return only the last image if available
+      return images.length > 0 ? [images[images.length - 1]] : [];
+    }
+    
+    // Otherwise use the sampling logic for multiple images
     if (images.length <= 10) {
       return images;
     }
@@ -153,7 +161,7 @@ const MediaCaptureApp = () => {
           const selectedImages = selectImages();
           
           try {
-            const response = await fetch('https://aa4b-84-14-112-188.ngrok-free.app/instruct', {
+            const response = await fetch(process.env.REACT_APP_AEYE_SERVER_URL || 'http://127.0.0.1:5000/instruct', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

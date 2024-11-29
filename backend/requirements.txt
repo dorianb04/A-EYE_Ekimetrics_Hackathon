@@ -1,8 +1,9 @@
 pillow
+pyyaml
 flask
+flask_cors
 requests
 openai
-base64
-io
 openai-whisper
 pyttsx3
+groq

@@ -1,0 +1,6 @@
+There are three cars visible in the image:
+- One car is directly in front of you.
+- Another car is to your left.
+- The third car is to your right.
+
+Additionally, there is a traffic light to your right.
