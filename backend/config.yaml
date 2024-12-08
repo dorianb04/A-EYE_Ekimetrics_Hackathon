@@ -1,12 +1,12 @@
 backend:
   mode: "scaleway"
   groq_api:
-    api_key: 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
+    api_key: "your_api_key"
     vllm_model_name: "llama-3.2-90b-vision-preview"
     transcript_model_name: "whisper-large-v3-turbo"
   scaleway_vllm_api:
     base_url: https://api.scaleway.ai/v1
-    api_key: 28ee9703-8fa5-4a9f-b790-d74d82eb2a56
+    api_key: "your_api_key"
     vllm_model_name: "pixtral-12b-2409"
   transcript_model:
     version: "tiny"
